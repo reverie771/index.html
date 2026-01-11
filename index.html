@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Fast Food Empire Simulator (Prototype)</title>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.js"></script>
+  <style>
+    body { margin: 0; background: #111; }
+  </style>
+</head>
+<body>
+
+<script>
+/* ======================
+   GLOBAL GAME STATE
+====================== */
+const gameState = {
+  money: 50000,
+  reputation: 70,
+  cows: 100,
+  employees: 20,
+  burgersSold: 0,
+
+  ethics: {
+    hormones: false,
+    lowWages: false
+  },
+
+  tick() {
+    // Income & costs
+    this.money += this.burgersSold * 2;
+    this.money -= this.employees * 30;
+
+    // Reputation effects
+    if (this.ethics.hormones) this.reputation -= 0.3;
+    if (this.ethics.lowWages) this.reputation -= 0.2;
+
+    this.reputation = Phaser.Math.Clamp(this.reputation, 0, 100);
+  }
+};
+
+/* ======================
+   MAIN SCENE
+====================== */
+class MainScene extends Phaser.Scene {
+  constructor() {
+    super("MainScene");
+  }
+
+  create() {
+    // Panel backgrounds (4 quadrants)
+    this.add.rectangle(225, 150, 450, 300, 0x2a2a2a);
+    this.add.rectangle(675, 150, 450, 300, 0x333333);
+    this.add.rectangle(225, 450, 450, 300, 0x333333);
+    this.add.rectangle(675, 450, 450, 300, 0x2a2a2a);
+
+    // Titles
+    this.add.text(20, 10, "WORLD", { fontSize: "18px", color: "#ffffff" });
+    this.add.text(470, 10, "REPORTS", { fontSize: "18px", color: "#ffffff" });
+    this.add.text(20, 310, "FARM", { fontSize: "18px", color: "#ffffff" });
+    this.add.text(470, 310, "RESTAURANT", { fontSize: "18px", color: "#ffffff" });
+
+    // Text fields
+    this.worldText = this.add.text(20, 40, "", { color: "#dddddd" });
+    this.reportText = this.add.text(470, 40, "", { color: "#dddddd" });
+    this.farmText = this.add.text(20, 340, "", { color: "#dddddd" });
+    this.restaurantText = this.add.text(470, 340, "", { color: "#dddddd" });
+
+    // Buttons (simple rectangles)
+    this.hormoneBtn = this.makeButton(20, 110, "Use Hormones");
+    this.wageBtn = this.makeButton(20, 150, "Lower Wages");
+    this.cowBtn = this.makeButton(20, 380, "Buy 10 Cows ($1000)");
+
+    // Button logic
+    this.hormoneBtn.on("pointerdown", () => {
+      gameState.ethics.hormones = !gameState.ethics.hormones;
+    });
+
+    this.wageBtn.on("pointerdown", () => {
+      gameState.ethics.lowWages = !gameState.ethics.lowWages;
+    });
+
+    this.cowBtn.on("pointerdown", () => {
+      if (gameState.money >= 1000) {
+        gameState.money -= 1000;
+        gameState.cows += 10;
+      }
+    });
+
+    // Sell burgers with SPACE
+    this.input.keyboard.on("keydown-SPACE", () => {
+      gameState.burgersSold += 10;
+    });
+
+    // Main game tick (like the original)
+    this.time.addEvent({
+      delay: 2000,
+      loop: true,
+      callback: () => {
+        gameState.tick();
+
+        // Random scandal
+        if (Math.random() < 0.15 && gameState.reputation < 50) {
+          alert("Scandal! Public outrage over business practices.");
+          gameState.money -= 5000;
+        }
+      }
+    });
+  }
+
+  makeButton(x, y, label) {
+    const rect = this.add.rectangle(x, y, 200, 30, 0x555555).setOrigin(0);
+    const text = this.add.text(x + 10, y + 7, label, { color: "#ffffff" });
+
+    rect.setInteractive({ useHandCursor: true });
+    rect.on("pointerover", () => rect.setFillStyle(0x777777));
+    rect.on("pointerout", () => rect.setFillStyle(0x555555));
+
+    return rect;
+  }
+
+  update() {
+    this.worldText.setText(
+      `Reputation: ${gameState.reputation.toFixed(1)}%
+Hormones: ${gameState.ethics.hormones ? "ON" : "OFF"}
+Low Wages: ${gameState.ethics.lowWages ? "ON" : "OFF"}`
+    );
+
+    this.reportText.setText(
+      `Money: $${gameState.money}
+Employees: ${gameState.employees}
+Burgers Sold: ${gameState.burgersSold}`
+    );
+
+    this.farmText.setText(
+      `Cows: ${gameState.cows}`
+    );
+
+    this.restaurantText.setText(
+      `Press SPACE to sell burgers`
+    );
+  }
+}
+
+/* ======================
+   GAME CONFIG
+====================== */
+const config = {
+  type: Phaser.AUTO,
+  width: 900,
+  height: 600,
+  backgroundColor: "#1b1b1b",
+  scene: MainScene
+};
+
+new Phaser.Game(config);
+</script>
+
+</body>
+</html>
